@@ -1,5 +1,9 @@
+use rayon::prelude::*;
+use std::ops::Range;
+
 use crate::Problem;
 use aoc_parse::{parser, prelude::*};
+
 pub struct Solution {}
 
 #[derive(Debug)]
@@ -29,11 +33,8 @@ impl SubMap {
 
 #[derive(Debug)]
 struct ResourceMap {
-    input: String,
-    output: String,
     sub_maps: Vec<SubMap>,
 }
-
 impl ResourceMap {
     fn map(&self, input: isize) -> isize {
         for sub_map in self.sub_maps.iter() {
@@ -45,11 +46,9 @@ impl ResourceMap {
     }
 
     fn parse(raw_map: ((String, String), Vec<(isize, isize, isize)>)) -> Self {
-        Self {
-            input: raw_map.0 .0,
-            output: raw_map.0 .1,
-            sub_maps: raw_map.1.into_iter().map(SubMap::parse).collect(),
-        }
+        let mut sub_maps: Vec<_> = raw_map.1.into_iter().map(SubMap::parse).collect();
+        sub_maps.sort_by_key(|m| m.source_start);
+        Self { sub_maps }
     }
 }
 
@@ -62,6 +61,22 @@ impl Almanac {
             input = r_map.map(input);
         }
         input
+    }
+}
+
+struct Interval {
+    start: isize,
+    length: isize,
+}
+
+impl Interval {
+    fn end_exclusive(&self) -> isize {
+        self.start + self.length
+    }
+
+    fn interval_iter(&self) -> Range<isize> {
+        println!("Starting interval");
+        self.start..self.end_exclusive()
     }
 }
 
@@ -86,12 +101,34 @@ fn parse_input(input: &str) -> (Vec<isize>, Almanac) {
 impl Problem for Solution {
     fn solve_a(&self, input: &str) -> Option<String> {
         let (seeds, almanac) = parse_input(input);
-        let locations = seeds.into_iter().map(|s| almanac.map(s));
+        let locations = seeds.into_iter().par_bridge().map(|s| almanac.map(s));
         let min_loc = locations.min().unwrap();
         Some(min_loc.to_string())
     }
 
     fn solve_b(&self, input: &str) -> Option<String> {
-        None
+        // Brute-force attempt (incredibly stupid)
+        let (seeds_and_lengths, almanac) = parse_input(input);
+        let mut intervals: Vec<_> = seeds_and_lengths
+            .chunks(2)
+            .map(|pair| Interval {
+                start: pair[0],
+                length: pair[1],
+            })
+            .collect();
+        intervals.sort_by_key(|it| it.start);
+        for i in 0..(intervals.len() - 1) {
+            assert!(intervals[i].end_exclusive() <= intervals[i + 1].start)
+        }
+
+        let possible_seeds = intervals.iter().flat_map(|it| it.interval_iter());
+
+        let min_location = possible_seeds
+            .par_bridge()
+            .map(|s| almanac.map(s))
+            .min()
+            .unwrap();
+
+        Some(min_location.to_string())
     }
 }
