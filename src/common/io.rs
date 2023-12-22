@@ -11,7 +11,22 @@ pub struct RunCode {
     problem: u32,
     run_a: bool,
     run_b: bool,
+    solution_a: Option<String>,
+    solution_b: Option<String>,
     as_example: bool,
+}
+
+impl RunCode {
+    pub fn init_all(problem: u32) -> Self {
+        Self {
+            problem,
+            run_a: true,
+            run_b: true,
+            solution_a: None,
+            solution_b: None,
+            as_example: false,
+        }
+    }
 }
 
 impl FromStr for RunCode {
@@ -31,12 +46,14 @@ impl FromStr for RunCode {
             problem,
             run_a,
             run_b,
+            solution_a: None,
+            solution_b: None,
             as_example,
         })
     }
 }
 
-fn print_solution(prefix: &str, solution: Option<String>) {
+fn print_solution(prefix: &str, solution: &Option<String>) {
     let solution_str = match solution {
         Some(s) => s.to_string().bold().cyan(),
         None => "TODO".to_string().dimmed(),
@@ -73,17 +90,24 @@ impl RunCode {
         fs::read_to_string(&path).map_err(|_e| AocRunError::NoFile(path))
     }
 
-    pub fn run(&self) -> Result<(), AocRunError> {
+    pub fn run(mut self) -> Result<Self, AocRunError> {
         let problem = days::get_problem(self.problem)?;
         let input = self.get_input()?;
         if self.run_a {
-            let solution_a = problem.solve_a(&input);
-            print_solution("A", solution_a);
-        };
+            self.solution_a = problem.solve_a(&input);
+        }
         if self.run_b {
-            let solution_b = problem.solve_b(&input);
-            print_solution("B", solution_b);
-        };
-        Ok(())
+            self.solution_b = problem.solve_b(&input);
+        }
+        Ok(self)
+    }
+
+    pub fn print(&self) {
+        if self.run_a {
+            print_solution("A", &self.solution_a);
+        }
+        if self.run_b {
+            print_solution("B", &self.solution_b);
+        }
     }
 }
