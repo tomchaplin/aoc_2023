@@ -9,6 +9,8 @@ mod day05;
 mod day06;
 mod day07;
 mod day08;
+mod day09;
+mod day10;
 
 pub fn get_problem(problem: u32) -> Result<Box<dyn Problem>, AocRunError> {
     match problem {
@@ -20,6 +22,8 @@ pub fn get_problem(problem: u32) -> Result<Box<dyn Problem>, AocRunError> {
         06 => Ok(Box::new(day06::Solution {})),
         07 => Ok(Box::new(day07::Solution {})),
         08 => Ok(Box::new(day08::Solution {})),
+        09 => Ok(Box::new(day09::Solution {})),
+        10 => Ok(Box::new(day10::Solution {})),
         _ => Err(AocRunError::UnregistedProblem(problem)),
     }
 }
